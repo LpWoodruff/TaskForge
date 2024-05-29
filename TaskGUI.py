@@ -1,164 +1,56 @@
-import tkinter as tk
-from tkinter import messagebox
-from datetime import datetime
-
-
+from task_methods import *
 
 class Taskapp:
-    def __init__(self,master):
+    def __init__(self, master):
         # APP SPECIFIC INFO
         self.master = master
         master.title("TaskForge")
         master.configure(bg="White")
-        
-        master.geometry("600x500")
+        master.geometry("1000x700")
         self.task_list = []
-
-    #Header Frame
-        self.header_frame = tk.Frame(
-            master, 
-            bg="Grey",
-            bd=2,
-            border=1,
-            relief=tk.SOLID
-            )
-        self.header_frame.pack(fill=tk.X)
-
-        self.LB_title = tk.Label(
-            self.header_frame, 
-            bg="White",
-            fg="Black",
-            border=1, 
-            relief=tk.SOLID,
-            text="TaskForge", 
-            font=("Impact", 36))
-        self.LB_title.pack(side=tk.TOP)
-
-        self.LB_date = tk.Label(
-            self.header_frame, 
-            background="Darkgrey", 
-            text=" ",  
-            font=("Impact", 20))
-        self.LB_date.pack(side=tk.RIGHT)
-
-        self.LB_time = tk.Label(
-            self.header_frame, 
-            background="Darkgrey", 
-            text=" ",  
-            font=("Impact", 20))
-        self.LB_time.pack(side=tk.LEFT)
+        self.last_modified_time = 0
         
+        self.heading_frame = tk.Frame(master, bg="red")
         
+        self.LB_title = tk.Label(self.heading_frame, text="TaskForge", font=("Helvetica", 24, "bold"), bg="White")
+        self.LB_title.grid(row=0, column=1, pady=(10, 20))
 
-        #Controls Frame
-        self.controls_frame = tk.Frame(
-            master, 
-            pady= 10,
-            )
-        self.controls_frame.pack(fill=tk.BOTH)
+        self.LB_date = tk.Label(self.heading_frame, text="Date", font=("Helvetica", 14), bg="White")
+        self.LB_date.grid(row=1, column=0, padx=(20, 10), sticky="w")
 
-        self.BT_create_task = tk.Button(
-            self.controls_frame,
-            text="Create Task",
-            command=self.create_task)
-        self.BT_create_task.pack(side=tk.LEFT)
+        self.LB_time = tk.Label(self.heading_frame, text="Time", font=("Helvetica", 14), bg="White")
+        self.LB_time.grid(row=1, column=2, sticky="e")
 
-        self.BT_remove_task = tk.Button(
-            self.controls_frame,
-            text="Remove Task",
-            command=self.remove_task)
-        self.BT_remove_task.pack(side=tk.LEFT)
+        self.heading_frame.grid_columnconfigure(0, weight=1)
+        self.heading_frame.grid_columnconfigure(1, weight=1)
+        self.heading_frame.grid_columnconfigure(2, weight=1)
 
-        self.BT_quit = tk.Button(
-            self.controls_frame,
-            text="Quit",
-            command= self.master.destroy)
-        self.BT_quit.pack(side=tk.RIGHT)
+        self.heading_frame.pack(fill='x')
+    
+        update_date_time(self)
 
-        #Task Creation Frame
-        self.creation_frame = tk.Frame(
-            master, 
-            bg="DarkGrey",
-            border=1,
-            relief=tk.SOLID,
-            padx=25, pady=25)
+        # Main Body - shows tasks
+        self.task_frame = tk.Frame(master, bg="white")
+        self.task_frame.pack(fill='x', expand=True)
 
-        self.LB_description = tk.Label(
-            self.creation_frame,
-            text="Description:")
-        self.LB_description.pack(anchor=tk.CENTER)
+        self.task_frame.grid_rowconfigure(0, weight=1)
+        self.task_frame.grid_columnconfigure(0, weight=1)
 
-        self.description_entry = tk.Text(
-            self.creation_frame, 
-            height=2)
-        self.description_entry.pack(anchor= tk.CENTER)
+        self.Task_box = tk.Listbox(self.task_frame, background="red")
+        self.Task_box.grid(row=0, column=0, sticky='nsew')
 
-        self.LB_due_date = tk.Label(
-            self.creation_frame, 
-            text="Due Date:")
-        self.LB_due_date.pack(anchor=tk.CENTER)
 
-        self.date_entry = tk.Entry(self.creation_frame)
-        self.date_entry.pack(anchor=tk.CENTER)
 
-        self.BT_submit = tk.Button(self.creation_frame, text="Submit", command=self.submit)
-        self.BT_submit.pack(anchor=tk.CENTER)
+        self.functionality_frame = tk.Frame(master, bg="white")
+        self.functionality_frame.pack(fill='both', expand=True, pady=20)
         
-        self.BT_cancel = tk.Button(self.creation_frame, text="Cancel", command=self.cancel_button)
-        self.BT_cancel.pack(anchor=tk.CENTER)
+        self.BT_add_task = tk.Button(self.functionality_frame, text="Add Task")
+        self.BT_remove_task = tk.Button(self.functionality_frame, text="Remove Task")
+        self.BT_add_task.grid(row=0, column=0, sticky="e")
+        self.BT_remove_task.grid(row=0, column=1, sticky="e")
 
-        #Task List Frame
-        self.task_frame = tk.Frame(master, bg="Grey")
-        self.task_frame.pack(fill=tk.X)
 
-        self.task_listbox = tk.Listbox(self.task_frame, bg="White")
-        self.task_listbox.pack(fill=tk.BOTH)
-        
-        self.load_tasks()
-        self.update_time_date()
-        
+        load_tasks(self)
+        update_tasks(self)
+        check_file_modification(self)  # Start checking for file modifications
 
-    def update_time_date(self):
-        current_time = datetime.now().strftime("%H:%M:%S")
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        
-        self.LB_time.config(text=current_time)
-        self.LB_date.config(text=current_date)
-        self.master.after(1000, self.update_time_date)
-
-    def create_task(self):
-        self.creation_frame.pack(fill=tk.BOTH, anchor=tk.CENTER)
-
-    def submit(self):
-        task_num = len(self.task_list) + 1
-        task_description = self.description_entry.get("1.0", "end-1c") 
-        task_date = self.date_entry.get() 
-        self.task_list.append(f"Task {task_num}: {task_description}, {task_date}")
-        with open("tasks.txt", 'a') as file:
-            file.write(self.task_list[task_num - 1] + "\n")
-        self.load_tasks()
-
-    def cancel_button(self):
-        self.creation_frame.pack_forget()
-
-    def load_tasks(self):
-        self.task_list.clear()
-        self.task_listbox.delete(0, tk.END) 
-        with open("tasks.txt", 'r') as file:
-            for line in file:
-                self.task_list.append(line.strip())
-            for item in self.task_list:
-                self.task_listbox.insert(tk.END, item)
-        
-    def remove_task(self):
-        selected_index = self.task_listbox.curselection()
-        if selected_index:
-            task_to_remove = self.task_list[selected_index[0]]
-        
-            self.task_list.remove(task_to_remove)
-        
-            self.task_listbox.delete(selected_index)
-
-            with open("tasks.txt", 'w') as file:
-                for task in self.task_list:
-                    file.write(task + "\n")
