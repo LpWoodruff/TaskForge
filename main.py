@@ -6,8 +6,3 @@ root = tk.Tk()
 app = Taskapp(root)
    
 root.mainloop()
-
-    
-    
-
-
